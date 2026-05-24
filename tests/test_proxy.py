@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from slippage.features import add_synthetic_orders, compute_market_features
-from slippage.proxy import build_proxy, calibrate_alpha
+from features import add_synthetic_orders, compute_market_features
+from proxy import build_proxy, calibrate_alpha
 
 
 def _make_ohlcv(n: int = 80, seed: int = 1) -> pd.DataFrame:

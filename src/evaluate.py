@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from slippage.paths import RESULTS_DIR
+from paths import RESULTS_DIR
 
 
 # ---------------------------------------------------------------------------
@@ -187,11 +187,11 @@ def evaluate_all(
 
 def _main() -> None:
     import torch
-    from slippage.baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
-    from slippage.features import FEATURE_NAMES
-    from slippage.model import SlippageMLP
-    from slippage.pipeline import build_full_dataset
-    from slippage.train import predict
+    from baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
+    from features import FEATURE_NAMES
+    from model import SlippageMLP
+    from pipeline import build_full_dataset
+    from train import predict
 
     print("Loading data and building split...")
     _, _, split = build_full_dataset()

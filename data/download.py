@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from slippage.data_loader import TICKERS, download_ohlcv, _default_start, _default_end
+from data_loader import TICKERS, download_ohlcv, _default_start, _default_end
 
 
 def main() -> None:

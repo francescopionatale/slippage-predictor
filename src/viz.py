@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from slippage.paths import FIGURES_DIR
+from paths import FIGURES_DIR
 
 _PALETTE = "viridis"
 

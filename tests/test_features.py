@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from slippage.features import (
+from features import (
     FEATURE_NAMES,
     add_synthetic_orders,
     compute_market_features,

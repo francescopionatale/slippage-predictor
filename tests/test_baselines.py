@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from slippage.baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
-from slippage.features import FEATURE_NAMES
+from baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
+from features import FEATURE_NAMES
 
 
 def _toy_data(n_train: int = 200, n_val: int = 50, seed: int = 0):

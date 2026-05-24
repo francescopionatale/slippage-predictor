@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from slippage.paths import RAW_DIR
+from paths import RAW_DIR
 
 
 def _default_start() -> str:

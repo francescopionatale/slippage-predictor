@@ -13,9 +13,9 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from slippage.dataset import SlippageDataset, SplitData
-from slippage.model import SlippageMLP
-from slippage.paths import RESULTS_DIR
+from dataset import SlippageDataset, SplitData
+from model import SlippageMLP
+from paths import RESULTS_DIR
 
 
 def train(
@@ -125,8 +125,8 @@ def predict(model: SlippageMLP, X: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def _main() -> None:
-    from slippage.features import FEATURE_NAMES
-    from slippage.pipeline import build_full_dataset
+    from features import FEATURE_NAMES
+    from pipeline import build_full_dataset
 
     print("Downloading data and building split...")
     _, _, split = build_full_dataset()

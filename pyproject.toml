@@ -29,6 +29,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["slippage*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

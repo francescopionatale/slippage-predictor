@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from slippage.dataset import SlippageDataset, temporal_split
-from slippage.features import FEATURE_NAMES
+from dataset import SlippageDataset, temporal_split
+from features import FEATURE_NAMES
 
 
 def _make_proxy_df(n: int = 300, seed: int = 0) -> pd.DataFrame:
