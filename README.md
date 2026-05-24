@@ -173,6 +173,43 @@ years of hourly bars to maximise variability across market regimes.
 
 ---
 
+## Known limitations
+
+The most important caveat is the **circularity between the synthetic proxy
+and the model features**. The proxy formula
+
+```
+slippage_bps = 10 000 × side × (base_exec_{t+1} − close_t) / close_t
+             + 10 000 × α × order_size_fraction × vol_rolling
+```
+
+uses `order_size_fraction` and `vol_rolling` as inputs — and those same two
+variables are also features fed to the MLP. As a consequence:
+
+- A meaningful fraction of the test-set MAE reduction over the mean baseline
+  comes from the model **re-learning the deterministic impact term**, not from
+  genuinely predicting execution cost.
+- The residual `base_exec_{t+1} − close_t` is the only true predictive
+  challenge, and it is essentially next-bar price drift — notoriously close
+  to a random walk.
+- **Test metrics therefore overstate real-world generalisation capability.**
+  A fair evaluation would require actual broker execution data (Level 2
+  fills, IS/VWAP benchmarks), which is not freely available.
+
+Additional caveats:
+
+- The α calibration grid `[0.5, 1, 2, 5, 10]` is coarse, and α=2.0 serves as
+  the reference proxy, so calibration mainly validates robustness to α
+  perturbation rather than discovering an empirical optimum.
+- `order_size_fraction ~ Uniform(0.001, 0.05)` is not representative of any
+  real-world order-size distribution.
+- The temporal hold-out (last 20%) is a single fold; results may shift under
+  a true walk-forward setup with periodic refitting (see *Out of scope*).
+- `results/metrics.json` contains **illustrative values**, not numbers
+  produced by running the training pipeline.
+
+---
+
 ## Out of scope (future extensions)
 
 - True rolling walk-forward with model refitting

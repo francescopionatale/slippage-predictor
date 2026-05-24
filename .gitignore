@@ -9,7 +9,6 @@ dist/
 build/
 .ipynb_checkpoints/
 results/figures/*.png
-results/metrics.json
 *.pt
 *.pth
 .DS_Store
