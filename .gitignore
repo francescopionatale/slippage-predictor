@@ -1,0 +1,15 @@
+data/raw/
+data/processed/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.ipynb_checkpoints/
+results/figures/*.png
+results/metrics.json
+*.pt
+*.pth
+.DS_Store
