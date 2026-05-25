@@ -228,14 +228,16 @@ After running the full pipeline (`make data && make train && make eval`),
 
 | Model | MAE | RMSE | MedAE |
 |-------|-----|------|-------|
-| MLP        | ≈ 4.7 | ≈ 7.2 | ≈ 3.0 |
-| Heuristic  | ≈ 10.9 | ≈ 16.5 | ≈ 7.0 |
-| Linear     | ≈ 6.9 | ≈ 10.1 | ≈ 5.2 |
-| Mean       | ≈ 15.2 | ≈ 21.5 | ≈ 12.6 |
+| MLP        | ≈ 5.3 | ≈ 9.3 | ≈ 3.2 |
+| Heuristic  | ≈ 12.1 | ≈ 20.3 | ≈ 7.3 |
+| Linear     | ≈ 7.9 | ≈ 13.7 | ≈ 5.4 |
+| Mean       | ≈ 17.7 | ≈ 30.2 | ≈ 12.9 |
 
-The absolute bps are higher than a linear proxy because the square-root impact
-term raises the typical slippage magnitude. The MLP still beats all baselines
-convincingly, and seed-to-seed variation is small (σ ≈ 0.02 bps).
+The aggregate MAE is structurally higher than a mega-cap-only universe: the
+illiquid name (PRCT) has per-ticker MAE ≈ 12.6 bps vs ≈ 2.5 bps for SPY, and
+this enters the aggregate. The MLP beats the heuristic ~2:1 on every ticker
+individually (see the per-ticker chart in the report), confirming the gap is
+structural, not a quirk of the most-liquid names.
 
 ---
 
