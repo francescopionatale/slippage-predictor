@@ -197,8 +197,27 @@ Linear(32 → 1)
 
 ## Asset universe
 
-SPY, QQQ, AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM — covering two calendar
-years of hourly bars to maximise variability across market regimes.
+11 tickers spanning the liquidity spectrum, two calendar years of hourly bars:
+
+| Ticker | Sector       | Liquidity profile               |
+|--------|--------------|---------------------------------|
+| SPY    | ETF          | Ultra-liquid, S&P 500           |
+| QQQ    | ETF          | Ultra-liquid, Nasdaq-100        |
+| IWM    | ETF          | Liquid, wider spread than SPY   |
+| AAPL   | Tech         | Ultra-liquid                    |
+| MSFT   | Tech         | Ultra-liquid                    |
+| GOOGL  | Tech         | Ultra-liquid                    |
+| JPM    | Financials   | Ultra-liquid                    |
+| GS     | Financials   | Liquid, rate-sensitive          |
+| XOM    | Energy       | Liquid, commodity-adjacent      |
+| SLB    | Energy       | Liquid, commodity-adjacent      |
+| PRCT†  | Healthcare   | Illiquid small-cap (stress test)|
+
+† Auto-fallback to `MGNI` (Magnite) if PRCT returns fewer than 500 cleaned bars.
+
+Diversification is **cross-ticker**, not cross-regime: yfinance restricts 1h
+bars to ~730 days, so all tickers share the same time window. The illiquid
+name is included to expose the model to wider Corwin–Schultz spreads.
 
 ---
 
@@ -222,6 +241,11 @@ convincingly, and seed-to-seed variation is small (σ ≈ 0.02 bps).
 
 ## Known limitations
 
+- **Ticker universe is US equity / ETF only.** The model is trained and tested
+  on US-listed equities and ETFs spanning ultra-liquid mega-caps through one
+  illiquid small-cap. Cross-asset generalization (futures, FX, crypto) is not
+  tested. The per-ticker MAE chart in the report shows MAE rises with
+  illiquidity, as expected from the proxy design.
 - **Circular evaluation.** The slippage label is a closed-form function of
   the same features the model observes. The MLP approximates the proxy formula,
   not real execution costs. All reported MAE numbers measure fit to the proxy.

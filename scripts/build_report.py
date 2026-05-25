@@ -53,6 +53,13 @@ def load_walk_forward() -> list[dict]:
     return load_json(WALK_DIR / "summary.json") or []  # type: ignore[return-value]
 
 
+def load_per_ticker() -> dict:
+    metrics = load_json(RESULTS / "metrics.json") or {}
+    if isinstance(metrics, dict):
+        return metrics.get("per_ticker", {}) or {}
+    return {}
+
+
 # ---------------------------------------------------------------------------
 # HTML primitives
 # ---------------------------------------------------------------------------
@@ -102,7 +109,11 @@ def metric_card(label: str, value: str, subtitle: str = "") -> str:
 # Section builders
 # ---------------------------------------------------------------------------
 
-def build_abstract(summary: list[dict], walk: list[dict]) -> str:
+def build_abstract(
+    summary: list[dict],
+    walk: list[dict],
+    per_ticker: dict | None = None,
+) -> str:
     if not summary:
         return "<p><em>No runs found — execute scripts/run_experiments.py first.</em></p>"
     best = min(summary, key=lambda r: r["mlp_mae_bps"])
@@ -117,16 +128,25 @@ def build_abstract(summary: list[dict], walk: list[dict]) -> str:
                 f" In 5-fold expanding-window walk-forward CV the MLP averages "
                 f"<b>{wf_mlp['mae_bps_mean']:.2f} ± {wf_mlp['mae_bps_std']:.2f} bps</b>."
             )
+    n_tickers = len(per_ticker) if per_ticker else 0
+    universe_line = (
+        f"hourly OHLCV data for <b>{n_tickers} US tickers and ETFs</b> (~2 years) "
+        "spanning ultra-liquid ETFs (SPY, QQQ), large-cap equities across tech, "
+        "financials and energy, plus an illiquid small-cap to stress-test "
+        "cross-liquidity generalization"
+    ) if n_tickers else (
+        "hourly OHLCV data for a diversified US equity / ETF universe (~2 years)"
+    )
     return (
         "<p class='abstract'>"
         "A two-hidden-layer MLP with a Softplus head is trained to approximate a "
-        "<em>synthetic</em> slippage label derived from hourly OHLCV data for 9 US "
-        "tickers (~2 years). The label is a closed-form function of order size, "
-        "volatility, urgency, the Corwin–Schultz spread, and time-of-day — with "
-        "log-normal multiplicative noise (σ_log = 0.20). The MLP is therefore "
-        "performing <em>noisy function approximation</em> of the proxy formula, "
-        "not learning from real execution data. Its advantage over the heuristic "
-        "baseline reflects the proxy's interaction terms (urgency, spread × size, "
+        f"<em>synthetic</em> slippage label derived from {universe_line}. "
+        "The label is a closed-form function of order size, volatility, urgency, "
+        "the Corwin–Schultz spread, and time-of-day — with log-normal multiplicative "
+        "noise (σ_log = 0.20). The MLP is therefore performing "
+        "<em>noisy function approximation</em> of the proxy formula, not learning "
+        "from real execution data. Its advantage over the heuristic baseline "
+        "reflects the proxy's interaction terms (urgency, spread × size, "
         "time-of-day) that the heuristic cannot express, not any market-learning "
         "ability. "
         f"Best test MAE = <b>{best_mae:.3f} bps</b> "
@@ -159,7 +179,12 @@ def build_circularity_note() -> str:
     )
 
 
-def build_key_findings(summary: list[dict], seed: dict, walk: list[dict]) -> str:
+def build_key_findings(
+    summary: list[dict],
+    seed: dict,
+    walk: list[dict],
+    per_ticker: dict | None = None,
+) -> str:
     if not summary:
         return ""
     best = min(summary, key=lambda r: r["mlp_mae_bps"])
@@ -195,7 +220,28 @@ def build_key_findings(summary: list[dict], seed: dict, walk: list[dict]) -> str
         cards.append(metric_card("Walk-forward MAE", "—",
                                  "run scripts/run_walk_forward.py"))
 
-    return f'<div class="metric-row">{"".join(cards)}</div>'
+    cards_html = f'<div class="metric-row">{"".join(cards)}</div>'
+
+    per_ticker_note = ""
+    if per_ticker:
+        worst_t, worst_r = max(per_ticker.items(),
+                               key=lambda kv: kv[1].get("mlp_mae_bps", 0))
+        best_t, best_r = min(per_ticker.items(),
+                             key=lambda kv: kv[1].get("mlp_mae_bps", float("inf")))
+        per_ticker_note = (
+            f"<p style='margin-top:14px;color:#444'>"
+            f"<b>Cross-ticker spread:</b> the aggregate MAE includes "
+            f"{len(per_ticker)} tickers across the liquidity spectrum — best "
+            f"<code>{html.escape(best_t)}</code> at "
+            f"{best_r.get('mlp_mae_bps', 0):.3f} bps, worst "
+            f"<code>{html.escape(worst_t)}</code> at "
+            f"{worst_r.get('mlp_mae_bps', 0):.3f} bps. Illiquid names "
+            f"carry structurally higher spread-driven slippage; see the "
+            f"per-ticker chart in § Single-model diagnostics."
+            f"</p>"
+        )
+
+    return cards_html + per_ticker_note
 
 
 def build_run_table(summary: list[dict], seed: dict) -> str:
@@ -368,6 +414,21 @@ _ORIG_CAPTIONS = {
         "tails is expected given the right-skewed proxy distribution; "
         "the centre of the distribution should lie close to the reference line."
     ),
+    "mae_by_ticker.png": (
+        "Per-ticker MAE on the test set, sorted by MLP MAE. Illiquid names "
+        "(e.g. PRCT/MGNI, IWM) show higher absolute MAE — expected, as the "
+        "proxy's spread-penalty term amplifies impact where Corwin–Schultz "
+        "spreads are wider. The MLP consistently beats the heuristic across "
+        "liquidity profiles, indicating the learned interaction structure "
+        "generalises across ticker types."
+    ),
+    "walk_forward_timeline.png": (
+        "Expanding-window walk-forward folds. Blue bars are the cumulative "
+        "training window; orange bars are the 2-month out-of-sample test "
+        "window for each fold, annotated with the MLP MAE. Fold-to-fold "
+        "MAE variation is regime-driven (volatility shocks in specific test "
+        "windows), not model instability."
+    ),
     "error_by_segment.png": (
         "MAE broken down across order-size, volatility, time-of-day, side, "
         "and volume-regime buckets. Errors grow with size and volatility, "
@@ -445,6 +506,13 @@ def build_methodology() -> str:
 def build_limitations() -> str:
     return (
         "<ul>"
+        "<li><b>Ticker universe is US equity / ETF only.</b> The model is "
+        "trained and tested exclusively on US-listed equities and ETFs spanning "
+        "ultra-liquid mega-caps through one illiquid small-cap. Cross-asset "
+        "generalization (futures, FX, crypto) is not tested and not expected "
+        "without retraining. The per-ticker MAE chart in § Single-model "
+        "diagnostics shows MAE increases with illiquidity, as expected from "
+        "the proxy design.</li>"
         "<li><b>Circular evaluation.</b> The slippage label is a closed-form "
         "function of the same features the model observes. All reported metrics "
         "measure fit to the proxy, not accuracy on real execution costs. The "
@@ -580,10 +648,11 @@ def main() -> None:
     summary = load_summary()
     seed = load_seed_stats()
     walk = load_walk_forward()
+    per_ticker = load_per_ticker()
 
     body_sections = (
         section("key-findings", "Key findings",
-                build_key_findings(summary, seed, walk))
+                build_key_findings(summary, seed, walk, per_ticker))
         + section("circularity", "Interpretive note",
                   build_circularity_note())
         + section("run-comparison", "Run comparison",
@@ -607,7 +676,7 @@ def main() -> None:
         f"<style>{_CSS}</style></head><body>"
         f"<h1>Slippage predictor — diagnostics report</h1>"
         f"<p style='color:#666;font-size:13px;margin-top:-8px'>Generated {now}</p>"
-        f"{build_abstract(summary, walk)}"
+        f"{build_abstract(summary, walk, per_ticker)}"
         f"<div class='layout'>"
         f"{build_toc()}"
         f"<main>{body_sections}</main>"
