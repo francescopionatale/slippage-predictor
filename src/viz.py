@@ -236,6 +236,82 @@ def plot_spread_cs_distribution(
     return fig
 
 
+def plot_mae_by_ticker(
+    per_ticker: dict[str, dict[str, float]],
+    save_as: str | None = "mae_by_ticker.png",
+) -> plt.Figure:
+    """Grouped bar chart: per-ticker MLP MAE vs Heuristic MAE, sorted by MLP MAE."""
+    if not per_ticker:
+        raise ValueError("plot_mae_by_ticker: per_ticker dict is empty")
+
+    tickers = sorted(per_ticker.keys(),
+                     key=lambda t: per_ticker[t].get("mlp_mae_bps", float("inf")))
+    mlp_vals = [per_ticker[t].get("mlp_mae_bps", float("nan")) for t in tickers]
+    heur_vals = [per_ticker[t].get("heuristic_mae_bps", float("nan")) for t in tickers]
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    x = np.arange(len(tickers))
+    width = 0.4
+    ax.bar(x - width / 2, mlp_vals, width, label="MLP", color="steelblue")
+    ax.bar(x + width / 2, heur_vals, width, label="Heuristic", color="salmon")
+    ax.set_xticks(x)
+    ax.set_xticklabels(tickers, rotation=30, ha="right")
+    ax.set_ylabel("MAE (bps)")
+    ax.set_title("Per-ticker MAE: MLP vs Heuristic (sorted by MLP MAE)")
+    ax.legend()
+    fig.tight_layout()
+    if save_as:
+        fig.savefig(FIGURES_DIR / save_as, dpi=150)
+    return fig
+
+
+def plot_walk_forward_timeline(
+    folds_df: pd.DataFrame,
+    save_as: str | None = "walk_forward_timeline.png",
+) -> plt.Figure:
+    """Gantt-style timeline of expanding-window walk-forward folds.
+
+    Each fold draws a blue training-window bar and an orange test-window bar.
+    Test bars are annotated with the MLP MAE of that fold.
+    """
+    required = {"fold", "model", "train_start", "train_end",
+                "test_start", "test_end", "mae_bps"}
+    missing = required - set(folds_df.columns)
+    if missing:
+        raise ValueError(f"plot_walk_forward_timeline: missing columns {sorted(missing)}")
+
+    mlp = folds_df[folds_df["model"] == "mlp"].sort_values("fold").reset_index(drop=True)
+    if mlp.empty:
+        raise ValueError("plot_walk_forward_timeline: no rows for model='mlp'")
+
+    fig, ax = plt.subplots(figsize=(10, 0.7 * len(mlp) + 2.0))
+    for _, row in mlp.iterrows():
+        ts = pd.Timestamp(row["train_start"])
+        te = pd.Timestamp(row["train_end"])
+        vs = pd.Timestamp(row["test_start"])
+        ve = pd.Timestamp(row["test_end"])
+        y = int(row["fold"])
+        ax.barh(y, (te - ts).total_seconds() / 86_400, left=ts,
+                height=0.55, color="steelblue", alpha=0.5, label="train" if y == 0 else None)
+        ax.barh(y, (ve - vs).total_seconds() / 86_400, left=vs,
+                height=0.55, color="darkorange", alpha=0.85, label="test" if y == 0 else None)
+        mid = vs + (ve - vs) / 2
+        ax.text(mid, y, f"MAE={row['mae_bps']:.2f}", ha="center", va="center",
+                fontsize=8, color="white", fontweight="bold")
+
+    ax.set_yticks(sorted(mlp["fold"].unique().tolist()))
+    ax.set_yticklabels([f"Fold {int(f)}" for f in sorted(mlp["fold"].unique().tolist())])
+    ax.invert_yaxis()
+    ax.set_xlabel("Date")
+    ax.set_title("Walk-forward expanding-window folds (train + test windows, MLP MAE bps)")
+    ax.legend(loc="lower right", fontsize=8)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    if save_as:
+        fig.savefig(FIGURES_DIR / save_as, dpi=150)
+    return fig
+
+
 def plot_residuals_vs_predicted(
     y_true: np.ndarray,
     y_pred: np.ndarray,
