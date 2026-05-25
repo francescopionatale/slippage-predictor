@@ -1,8 +1,14 @@
 """Synthetic slippage proxy construction and alpha calibration.
 
-Since real execution data is unavailable, slippage is constructed from
-OHLCV bars using the next bar's average price as the execution benchmark
-plus a market-impact penalty scaled by volatility and order size.
+Since real execution data is unavailable, slippage is constructed as the
+**expected execution cost**: a market-impact penalty scaled by volatility,
+order size, and a tunable α, with several multiplicative modulators
+(urgency, spread, time-of-day) and multiplicative log-normal noise.
+
+Price drift between the arrival bar and a future bar is deliberately
+excluded — it is market risk during the holding period, not execution
+cost, and conflating the two drowns the impact signal in random-walk
+noise. See README "Why no price drift?" for the full rationale.
 """
 
 from __future__ import annotations
@@ -10,52 +16,107 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from features import eastern_hours
+
 
 def build_proxy(
     df: pd.DataFrame,
     features: pd.DataFrame,
     alpha: float = 2.0,
+    impact_noise: float = 0.20,
+    rng: np.random.Generator | None = None,
 ) -> pd.DataFrame:
     """Build the synthetic slippage label for every row in ``features``.
+
+    Follows the empirical square-root law for temporary market impact
+    (Almgren et al. 2005; Gatheral & Schied 2013): I(q) ∝ σ · √(q/V).
+
+    Formula (all on bar t, no lookahead to t+1):
+
+        arrival          = close_t
+        urgency_factor   = 1 + urgency ** 1.5                          # ∈ [1, 2]
+        spread_penalty   = 1 + 50 × spread_cs × order_size_fraction    # ≥ 1
+        tod_mult         = 1.3 if hour_ET < 10.5 or hour_ET ≥ 15.0     # opening/close premium
+                           else 1.0
+        impact           = α × σ_t × √(order_size_fraction) × arrival
+                           × urgency_factor × spread_penalty × tod_mult × exp(η)
+        exec_price       = arrival + side × impact
+        slippage_bps     = 10_000 × side × (exec_price − arrival) / arrival
+                         = 10_000 × impact / arrival
+
+    The three new multipliers make the label a genuine function of
+    ``urgency``, ``spread_cs``, ``order_size_fraction`` (via the spread
+    interaction), and time-of-day (via the index). The ``side`` column
+    still cancels algebraically. The closed-form heuristic baseline
+    (``β × √size × vol × 10_000``) can only approximate the *average* of
+    the modulators, leaving headroom for the MLP.
+
+    The noise is log-normal so that ``impact`` is always positive (real
+    execution costs cannot be negative). With ``impact_noise = σ_log = 0.20``
+    (≈ 21% multiplicative std), the implied R² ceiling is approximately 0.96.
+    The multiplicative factor ``exp(η)`` has median 1 and is broadly
+    symmetric on a log scale, matching the standard volatility model for
+    multiplicative shocks in finance.
 
     Parameters
     ----------
     df:
-        Raw OHLCV DataFrame with a DatetimeIndex.
+        Raw OHLCV DataFrame with a DatetimeIndex. Only ``close`` is used.
     features:
         Output of ``add_synthetic_orders``; must contain columns
-        ``side``, ``order_size_fraction``, and ``vol_rolling``.
+        ``side``, ``order_size_fraction``, ``vol_rolling``, ``urgency``,
+        ``spread_cs``.
     alpha:
         Market-impact scale factor. Higher alpha → larger impact penalty.
+    impact_noise:
+        σ_log of multiplicative log-normal noise on the impact term
+        (``η ~ N(0, impact_noise)``). Default 0.20 ≈ 21% multiplicative std.
+        Set to 0.0 for a deterministic proxy.
+    rng:
+        Required when ``impact_noise > 0`` for reproducibility.
 
     Returns
     -------
     DataFrame equal to ``features`` with added ``slippage_bps`` and
-    ``arrival_price`` columns. Rows where the next bar is unavailable
-    (last bar of the series) are dropped.
+    ``arrival_price`` columns. All rows are preserved (no last-bar drop,
+    since the proxy no longer depends on bar t+1).
     """
     # Align features to the OHLCV index (features may be a subset after dropna)
     shared = features.index.intersection(df.index)
     feats = features.loc[shared].copy()
-
     arrival = df["close"].loc[shared]
-    next_o = df["open"].shift(-1).loc[shared]
-    next_h = df["high"].shift(-1).loc[shared]
-    next_l = df["low"].shift(-1).loc[shared]
-    next_c = df["close"].shift(-1).loc[shared]
-    base_exec = (next_o + next_h + next_l + next_c) / 4.0
 
-    valid = base_exec.notna()
-    feats = feats.loc[valid]
-    arrival = arrival.loc[valid]
-    base_exec = base_exec.loc[valid]
+    urgency_factor = 1.0 + feats["urgency"] ** 1.5
+    spread_penalty = 1.0 + 50.0 * feats["spread_cs"] * feats["order_size_fraction"]
 
-    impact = alpha * feats["order_size_fraction"] * feats["vol_rolling"] * arrival
-    exec_price = base_exec + feats["side"] * impact
-    slippage = feats["side"] * (exec_price - arrival)
+    hours = eastern_hours(feats.index)
+    tod_mult = pd.Series(
+        np.where((hours < 10.5) | (hours >= 15.0), 1.3, 1.0),
+        index=feats.index,
+    )
 
-    feats = feats.copy()
-    feats["slippage_bps"] = 10_000.0 * slippage / arrival
+    impact = (
+        alpha
+        * np.sqrt(np.maximum(feats["order_size_fraction"], 0))
+        * feats["vol_rolling"]
+        * arrival
+        * urgency_factor
+        * spread_penalty
+        * tod_mult
+    )
+
+    if impact_noise > 0:
+        if rng is None:
+            raise ValueError(
+                "build_proxy requires an explicit rng when impact_noise > 0, "
+                "for reproducibility."
+            )
+        log_noise = rng.normal(0.0, impact_noise, size=len(impact))
+        impact = impact * np.exp(log_noise)
+
+    # slippage = side × (exec_price − arrival) = side × side × impact = impact.
+    # Slippage is always a positive cost regardless of side.
+    feats["slippage_bps"] = 10_000.0 * impact / arrival
     feats["arrival_price"] = arrival
     return feats
 
@@ -65,54 +126,51 @@ def build_proxy(
 # ---------------------------------------------------------------------------
 
 def calibrate_alpha(
-    df: pd.DataFrame,
-    features_val: pd.DataFrame,
-    y_val: pd.Series | np.ndarray,
+    build_split_fn,
+    n_features: int,
     alphas: list[float] | None = None,
+    epochs: int = 15,
+    seed: int = 42,
 ) -> tuple[float, dict[float, float]]:
-    """Find the alpha that minimises MAE on the validation set.
+    """For each alpha, rebuild the dataset, train a short MLP, return val MAE.
 
-    The MAE is computed between the proxy ``slippage_bps`` built with each
-    candidate alpha and the reference labels ``y_val``. The alpha with the
-    lowest MAE is selected.
-
-    To avoid issues with duplicate timestamps in ``features_val``, both
-    inputs are matched by position (not by label). The caller must ensure
-    ``features_val`` and ``y_val`` are aligned row-by-row.
+    Returns the alpha with the lowest validation MAE.
 
     Parameters
     ----------
-    df:
-        Raw OHLCV DataFrame (same one used to build the reference proxy).
-    features_val:
-        Validation-fold features (output of ``add_synthetic_orders``
-        restricted to the validation period). Must NOT contain duplicate
-        rows from label-based indexing; pass an iloc slice.
-    y_val:
-        Reference slippage labels, length must equal ``len(features_val)``
-        after dropping bars without t+1.
+    build_split_fn:
+        Callable ``alpha -> SplitData``. Must rebuild the proxy with the
+        given alpha so each candidate is evaluated on a fair dataset.
+    n_features:
+        Number of input features (used to instantiate the MLP).
     alphas:
-        Candidate alpha values to sweep.
+        Candidate alpha values. Defaults to [0.5, 1.0, 2.0, 5.0, 10.0].
+    epochs:
+        Maximum epochs per candidate (short training is sufficient).
+    seed:
+        Random seed passed to ``train()`` for reproducibility.
 
     Returns
     -------
-    best_alpha, dict mapping alpha -> MAE
+    best_alpha, dict mapping alpha -> best_val_mae
     """
+    from train import train  # lazy import to avoid circular dependency
+
     if alphas is None:
         alphas = [0.5, 1.0, 2.0, 5.0, 10.0]
 
-    y_val_arr = np.asarray(y_val)
-
     sensitivity: dict[float, float] = {}
     for a in alphas:
-        proxy = build_proxy(df, features_val, alpha=a)
-        # Match by position (proxy may have dropped tail bars)
-        n = min(len(proxy), len(y_val_arr))
-        if n == 0:
-            sensitivity[a] = float("nan")
-            continue
-        mae = float(np.abs(proxy["slippage_bps"].values[:n] - y_val_arr[:n]).mean())
-        sensitivity[a] = mae
+        split = build_split_fn(a)
+        _, history = train(
+            split,
+            n_features=n_features,
+            epochs=epochs,
+            patience=5,
+            seed=seed,
+            verbose=False,
+        )
+        sensitivity[a] = float(history["best_val_mae"])
 
-    best_alpha = min(sensitivity, key=lambda a: sensitivity[a])
-    return best_alpha, sensitivity
+    best = min(sensitivity, key=lambda a: sensitivity[a])
+    return best, sensitivity

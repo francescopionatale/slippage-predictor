@@ -41,8 +41,9 @@ class LinearBaseline:
 
 
 class HeuristicBaseline:
-    """Slippage estimated as β * order_size_fraction * vol_rolling * 10 000.
+    """Slippage estimated as β * √order_size_fraction * vol_rolling * 10 000.
 
+    Mirrors the square-root impact law in the proxy (Almgren et al. 2005).
     β is chosen by grid-search on the validation set. The size and vol columns
     are un-scaled internally using the train-only scaler statistics that must
     be passed by the caller.
@@ -94,7 +95,7 @@ class HeuristicBaseline:
             to un-scale the two relevant columns to their raw values.
         """
         size_raw, vol_raw = self._unscale(X_val, mean_train, std_train)
-        product = size_raw * vol_raw * 10_000.0
+        product = np.sqrt(np.maximum(size_raw, 0.0)) * vol_raw * 10_000.0
 
         best_beta, best_mae = 1.0, float("inf")
         for beta in self._betas:
@@ -108,7 +109,7 @@ class HeuristicBaseline:
 
     def predict_raw(self, size: np.ndarray, vol: np.ndarray) -> np.ndarray:
         """Predict from raw (un-scaled) size and vol arrays."""
-        return self._beta * size * vol * 10_000.0
+        return self._beta * np.sqrt(np.maximum(size, 0.0)) * vol * 10_000.0
 
     def predict(
         self,
