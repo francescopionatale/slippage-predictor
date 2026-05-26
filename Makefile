@@ -14,10 +14,10 @@ data:
 	$(PYTHON) scripts/download_data.py
 
 train:
-	$(PYTHON) -m slippage.training.trainer
+	$(PYTHON) scripts/train.py
 
 eval:
-	$(PYTHON) -m slippage.evaluation
+	$(PYTHON) scripts/evaluate.py
 
 test:
 	.venv/bin/pytest tests/ -v

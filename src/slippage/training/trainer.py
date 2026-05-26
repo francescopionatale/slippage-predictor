@@ -155,7 +155,7 @@ def predict(model: SlippageMLP, X: np.ndarray) -> np.ndarray:
 # CLI entry point
 # ---------------------------------------------------------------------------
 
-def _main() -> None:
+def main() -> None:
     from slippage.features import FEATURE_NAMES_TRAINING
     from slippage.pipeline import build_full_dataset
 
@@ -172,4 +172,4 @@ def _main() -> None:
 
 
 if __name__ == "__main__":
-    _main()
+    main()
