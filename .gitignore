@@ -8,7 +8,12 @@ __pycache__/
 dist/
 build/
 .ipynb_checkpoints/
-results/figures/*.png
+results/*
+!results/README.md
 *.pt
 *.pth
+*.pkl
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 .DS_Store

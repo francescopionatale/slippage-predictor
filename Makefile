@@ -1,7 +1,7 @@
 PYTHON := .venv/bin/python
 PIP    := .venv/bin/pip
 
-.PHONY: venv install data train eval test clean
+.PHONY: venv install data train eval test report all clean
 
 venv:
 	python3.13 -m venv .venv || python3.12 -m venv .venv
@@ -14,13 +14,24 @@ data:
 	$(PYTHON) data/download.py
 
 train:
-	$(PYTHON) -m slippage.train
+	$(PYTHON) -m train
 
 eval:
-	$(PYTHON) -m slippage.evaluate
+	$(PYTHON) -m evaluate
 
 test:
 	.venv/bin/pytest tests/ -v
+
+report:
+	$(PYTHON) scripts/run_experiments.py
+	$(PYTHON) scripts/compare_runs.py
+	$(PYTHON) scripts/run_walk_forward.py
+	$(PYTHON) scripts/plot_pred_vs_actual.py
+	$(PYTHON) scripts/generate_residual_plots.py
+	$(PYTHON) scripts/generate_diversification_plots.py
+	$(PYTHON) scripts/build_report.py
+
+all: train eval report
 
 clean:
 	rm -rf data/raw/* data/processed/* results/figures/* results/metrics.json
