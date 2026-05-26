@@ -1,0 +1,6 @@
+# MLP architecture defaults. Mirrors in-code defaults in
+# src/slippage/models/mlp.py.
+
+hidden: [64, 32]       # hidden layer widths
+dropout: 0.1           # dropout after the first hidden layer
+activation: softplus   # output activation — enforces non-negative predictions

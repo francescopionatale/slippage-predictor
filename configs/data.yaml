@@ -1,0 +1,23 @@
+# Data layer defaults. Canonical reference for ticker universe and
+# download policy. Mirrors the in-code defaults in src/slippage/data/loader.py.
+
+tickers:
+  - SPY
+  - QQQ
+  - IWM
+  - AAPL
+  - MSFT
+  - GOOGL
+  - JPM
+  - GS
+  - XOM
+  - SLB
+  - PRCT
+
+# Auto-fallback if the primary ticker has fewer than min_bars cleaned bars.
+ticker_fallbacks:
+  PRCT: MGNI
+
+min_bars: 500          # minimum cleaned 1h bars to keep a ticker
+interval: "1h"         # yfinance bar interval
+lookback_days: 720     # default download window (~2 years; yfinance 1h cap is 730)

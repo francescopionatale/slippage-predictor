@@ -1,0 +1,19 @@
+# Synthetic slippage proxy defaults. Mirrors in-code defaults in
+# src/slippage/proxy/{label,calibration}.py.
+#
+# Follows the empirical square-root law for temporary market impact
+# (Almgren et al. 2005; Gatheral & Schied 2013): I(q) ∝ σ · √(q/V).
+
+alpha: 2.0             # market-impact scale factor
+impact_noise: 0.20     # σ_log of multiplicative log-normal noise (R² ceiling ≈ 0.96)
+
+# Multiplicative modulators on top of the base sqrt-impact term
+urgency_exp: 1.5       # urgency_factor = 1 + urgency^urgency_exp
+spread_mult: 50.0      # spread_penalty = 1 + spread_mult × spread_cs × order_size_fraction
+tod_mult: 1.3          # opening/close premium
+tod_open_thresh: 10.5  # Eastern hour < this counts as "open"
+tod_close_thresh: 15.0 # Eastern hour ≥ this counts as "close"
+
+# Alpha-grid search defaults
+calibration_alphas: [0.5, 1.0, 2.0, 5.0, 10.0]
+calibration_epochs: 15

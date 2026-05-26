@@ -1,0 +1,15 @@
+# Training-loop defaults. Mirrors in-code defaults in
+# src/slippage/training/trainer.py.
+
+epochs: 100
+batch_size: 256
+lr: 0.001              # Adam learning rate
+patience: 10           # early-stopping patience on val MAE
+dropout: 0.1
+weight_decay: 0.0
+delta: adaptive        # "adaptive" -> max(1, median(|y_train|)); float -> fixed
+
+scheduler:
+  patience: 5          # ReduceLROnPlateau patience
+  factor: 0.5          # multiplier on LR when plateau detected
+  min_lr: 0.00001      # floor learning rate

@@ -1,0 +1,9 @@
+# Feature engineering defaults. Mirrors in-code defaults in
+# src/slippage/features/{market,order}.py.
+
+vol_window: 20         # rolling-window length for vol_rolling + vol_ratio
+
+# Synthetic order features
+orders_per_bar: 4      # 2 buy + 2 sell synthetic orders per OHLCV bar (must be even)
+size_low: 0.001        # uniform lower bound for order_size_fraction
+size_high: 0.05        # uniform upper bound for order_size_fraction
