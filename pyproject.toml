@@ -32,6 +32,8 @@ dependencies = [
     "seaborn>=0.13",
     "jupyter>=1.0",
     "ipykernel>=6.0",
+    "pydantic>=2",
+    "PyYAML>=6",
 ]
 
 [project.optional-dependencies]
@@ -43,11 +45,10 @@ Issues = "https://github.com/francescopionatale/slippage-predictor/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = [
-    "paths", "data_loader", "features", "proxy", "dataset",
-    "pipeline", "model", "train", "baselines", "evaluate", "viz",
-    "walk_forward",
-]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["slippage*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from dataset import SlippageDataset, temporal_split
-from features import FEATURE_NAMES_TRAINING
+from slippage.data import SlippageDataset, temporal_split
+from slippage.features import FEATURE_NAMES_TRAINING
 
 
 def test_no_temporal_overlap(proxy_df):

@@ -14,9 +14,9 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from dataset import SlippageDataset, SplitData
-from model import SlippageMLP
-from paths import RESULTS_DIR
+from slippage.data import SlippageDataset, SplitData
+from slippage.models import SlippageMLP
+from slippage.paths import RESULTS_DIR
 
 _DEFAULT_CHECKPOINT: Any = object()  # sentinel: "use RESULTS_DIR/model_checkpoint.pt"
 
@@ -82,7 +82,7 @@ def train(
 
     history: dict[str, Any] = {"train_loss": [], "val_mae": []}
     best_val_mae = float("inf")
-    best_state = None
+    best_state: dict[str, Any] = {k: v.clone() for k, v in model.state_dict().items()}
     best_epoch = 0
     no_improve = 0
 
@@ -156,8 +156,8 @@ def predict(model: SlippageMLP, X: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def _main() -> None:
-    from features import FEATURE_NAMES_TRAINING
-    from pipeline import build_full_dataset
+    from slippage.features import FEATURE_NAMES_TRAINING
+    from slippage.pipeline import build_full_dataset
 
     print("Downloading data and building split...")
     _, _, split = build_full_dataset()

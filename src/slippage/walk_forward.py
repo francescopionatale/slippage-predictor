@@ -14,11 +14,11 @@ from __future__ import annotations
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-from baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
-from dataset import SplitData
-from evaluate import global_metrics
-from features import FEATURE_NAMES_TRAINING
-from train import predict, train
+from slippage.data import SplitData
+from slippage.evaluation import global_metrics
+from slippage.features import FEATURE_NAMES_TRAINING
+from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor
+from slippage.training import predict, train
 
 _DAYS_PER_MONTH = 30.44
 

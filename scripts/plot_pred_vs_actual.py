@@ -20,9 +20,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from model import SlippageMLP
-from paths import RESULTS_DIR
-from pipeline import build_full_dataset
+from slippage.models import SlippageMLP
+from slippage.paths import RESULTS_DIR
+from slippage.pipeline import build_full_dataset
 
 if "seaborn-v0_8-whitegrid" in plt.style.available:
     plt.style.use("seaborn-v0_8-whitegrid")

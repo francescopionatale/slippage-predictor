@@ -16,7 +16,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from features import eastern_hours
+from slippage.features import eastern_hours
 
 
 def build_proxy(
@@ -154,7 +154,7 @@ def calibrate_alpha(
     -------
     best_alpha, dict mapping alpha -> best_val_mae
     """
-    from train import train  # lazy import to avoid circular dependency
+    from slippage.training import train  # lazy import to avoid circular dependency
 
     if alphas is None:
         alphas = [0.5, 1.0, 2.0, 5.0, 10.0]

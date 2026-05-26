@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from features import FEATURE_NAMES_TRAINING
-from walk_forward import summarise, walk_forward_cv
+from slippage.features import FEATURE_NAMES_TRAINING
+from slippage.walk_forward import summarise, walk_forward_cv
 
 
 @pytest.fixture

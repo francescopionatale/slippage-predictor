@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from features import FEATURE_NAMES_TRAINING, add_synthetic_orders, compute_market_features
-from proxy import build_proxy, calibrate_alpha
+from slippage.features import FEATURE_NAMES_TRAINING, add_synthetic_orders, compute_market_features
+from slippage.proxy import build_proxy, calibrate_alpha
 
 
 def _make_dataset(ohlcv_df, seed=1):
@@ -115,7 +115,7 @@ def test_proxy_noise_requires_rng(ohlcv_df):
 
 
 def test_calibrate_alpha_runs_and_returns_best(proxy_df):
-    from dataset import temporal_split
+    from slippage.data import temporal_split
 
     def _build(alpha):
         return temporal_split(proxy_df(n=300, seed=int(alpha * 10)))

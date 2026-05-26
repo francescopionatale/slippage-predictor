@@ -13,8 +13,8 @@ import json
 
 import pandas as pd
 
-from paths import RESULTS_DIR
-from viz import plot_mae_by_ticker, plot_walk_forward_timeline
+from slippage.paths import RESULTS_DIR
+from slippage.viz import plot_mae_by_ticker, plot_walk_forward_timeline
 
 METRICS = RESULTS_DIR / "metrics.json"
 FOLDS = RESULTS_DIR / "walk_forward" / "folds.csv"

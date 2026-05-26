@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import time
 
-from paths import RESULTS_DIR
-from pipeline import build_full_dataset
-from walk_forward import summarise, walk_forward_cv
+from slippage.paths import RESULTS_DIR
+from slippage.pipeline import build_full_dataset
+from slippage.walk_forward import summarise, walk_forward_cv
 
 OUT_DIR = RESULTS_DIR / "walk_forward"
 OUT_DIR.mkdir(parents=True, exist_ok=True)

@@ -10,10 +10,9 @@ import hashlib
 import numpy as np
 import pandas as pd
 
-from data_loader import TICKERS, download_ohlcv
-from dataset import SplitData, temporal_split
-from features import add_synthetic_orders, compute_market_features
-from proxy import build_proxy
+from slippage.data import TICKERS, SplitData, download_ohlcv, temporal_split
+from slippage.features import add_synthetic_orders, compute_market_features
+from slippage.proxy import build_proxy
 
 
 def _ticker_seed(ticker: str, base_seed: int = 42) -> int:

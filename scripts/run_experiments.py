@@ -16,12 +16,12 @@ from __future__ import annotations
 import json
 import time
 
-from baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
-from evaluate import evaluate_all
-from features import FEATURE_NAMES_TRAINING
-from paths import RESULTS_DIR
-from pipeline import build_full_dataset
-from train import predict, train
+from slippage.evaluation import evaluate_all
+from slippage.features import FEATURE_NAMES_TRAINING
+from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor
+from slippage.paths import RESULTS_DIR
+from slippage.pipeline import build_full_dataset
+from slippage.training import predict, train
 
 RUNS_DIR = RESULTS_DIR / "runs"
 RUNS_DIR.mkdir(parents=True, exist_ok=True)

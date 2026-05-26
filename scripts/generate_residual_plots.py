@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import torch
 
-from model import SlippageMLP
-from paths import RESULTS_DIR
-from pipeline import build_full_dataset
-from viz import plot_qq_residuals, plot_residual_distribution, plot_residuals_vs_predicted
+from slippage.models import SlippageMLP
+from slippage.paths import RESULTS_DIR
+from slippage.pipeline import build_full_dataset
+from slippage.viz import plot_qq_residuals, plot_residual_distribution, plot_residuals_vs_predicted
 
 CHECKPOINT = RESULTS_DIR / "model_checkpoint.pt"
 

@@ -21,7 +21,7 @@ import torch
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset
 
-from features import FEATURE_NAMES_TRAINING
+from slippage.features import FEATURE_NAMES_TRAINING
 
 
 @dataclass

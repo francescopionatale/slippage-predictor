@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from paths import RESULTS_DIR
+from slippage.paths import RESULTS_DIR
 
 if "seaborn-v0_8-whitegrid" in plt.style.available:
     plt.style.use("seaborn-v0_8-whitegrid")

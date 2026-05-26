@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from features import (
+from slippage.features import (
     FEATURE_NAMES,
     _corwin_schultz_spread,
     _time_of_day_encoding,

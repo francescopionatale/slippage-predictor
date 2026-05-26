@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from paths import FIGURES_DIR
+from slippage.paths import FIGURES_DIR
 
 
 def _apply_style() -> None:

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from features import FEATURE_NAMES
+from slippage.features import FEATURE_NAMES
 
 
 @pytest.fixture
