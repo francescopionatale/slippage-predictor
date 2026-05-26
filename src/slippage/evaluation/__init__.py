@@ -1,14 +1,13 @@
 """Evaluation: global metrics, segment breakdown, per-ticker."""
 
-from slippage.evaluation._legacy import (
-    evaluate_all,
+from slippage.evaluation.metrics import (
     global_metrics,
     mae,
     med_ae,
     per_ticker_metrics,
     rmse,
-    segment_breakdown,
 )
+from slippage.evaluation.segments import evaluate_all, segment_breakdown
 
 __all__ = [
     "mae",

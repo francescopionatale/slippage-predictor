@@ -1,8 +1,5 @@
-"""Evaluation: global metrics + segment breakdown.
-
-Can also be run as a module:
-    python -m slippage.evaluate
-"""
+"""Segment breakdown (size / vol / tod / side / vol-regime) and the
+full evaluation orchestrator that writes results/metrics.json."""
 
 from __future__ import annotations
 
@@ -11,35 +8,9 @@ import json
 import numpy as np
 import pandas as pd
 
+from slippage.evaluation.metrics import global_metrics, per_ticker_metrics
 from slippage.paths import RESULTS_DIR
 
-# ---------------------------------------------------------------------------
-# Metric helpers
-# ---------------------------------------------------------------------------
-
-def mae(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    return float(np.abs(y_true - y_pred).mean())
-
-
-def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    return float(np.sqrt(((y_true - y_pred) ** 2).mean()))
-
-
-def med_ae(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    return float(np.median(np.abs(y_true - y_pred)))
-
-
-def global_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
-    return {
-        "mae_bps": mae(y_true, y_pred),
-        "rmse_bps": rmse(y_true, y_pred),
-        "med_ae_bps": med_ae(y_true, y_pred),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Segment breakdown
-# ---------------------------------------------------------------------------
 
 def segment_breakdown(
     y_true: np.ndarray,
@@ -133,37 +104,6 @@ def segment_breakdown(
     return pd.DataFrame(records)
 
 
-# ---------------------------------------------------------------------------
-# Full evaluation report
-# ---------------------------------------------------------------------------
-
-def per_ticker_metrics(
-    test_df: pd.DataFrame,
-    y_true: np.ndarray,
-    preds: dict[str, np.ndarray],
-) -> dict[str, dict[str, float]]:
-    """Per-ticker MAE/RMSE/MedAE for each model in ``preds``.
-
-    Returns ``{ticker: {f"{model}_mae_bps": ..., f"{model}_rmse_bps": ...,
-    f"{model}_med_ae_bps": ..., "n_samples": int}}``.
-    """
-    if "ticker" not in test_df.columns:
-        return {}
-    out: dict[str, dict[str, float]] = {}
-    tickers = sorted(test_df["ticker"].unique())
-    for t in tickers:
-        mask = (test_df["ticker"] == t).values
-        if mask.sum() == 0:
-            continue
-        row: dict[str, float] = {"n_samples": int(mask.sum())}
-        for name, y_pred in preds.items():
-            row[f"{name}_mae_bps"] = mae(y_true[mask], y_pred[mask])
-            row[f"{name}_rmse_bps"] = rmse(y_true[mask], y_pred[mask])
-            row[f"{name}_med_ae_bps"] = med_ae(y_true[mask], y_pred[mask])
-        out[t] = row
-    return out
-
-
 def evaluate_all(
     split,
     model_predict_fn,
@@ -213,57 +153,3 @@ def evaluate_all(
         json.dump(results, f, indent=2)
 
     return results
-
-
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
-
-def _main() -> None:
-    import torch
-
-    from slippage.features import FEATURE_NAMES_TRAINING
-    from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor, SlippageMLP
-    from slippage.pipeline import build_full_dataset
-    from slippage.training import predict
-
-    print("Loading data and building split...")
-    _, _, split = build_full_dataset()
-
-    checkpoint = torch.load(RESULTS_DIR / "model_checkpoint.pt", weights_only=True)
-    model = SlippageMLP(n_features=checkpoint["n_features"])
-    model.load_state_dict(checkpoint["state_dict"])
-
-    scaler = split.scaler
-    heuristic = HeuristicBaseline(FEATURE_NAMES_TRAINING)
-    heuristic.fit(split.X_val, split.y_val, scaler.mean_, scaler.scale_)
-
-    baselines = {
-        "mean": lambda X: MeanPredictor().fit(split.X_train, split.y_train).predict(X),
-        "linear": LinearBaseline().fit(split.X_train, split.y_train).predict,
-        "heuristic": lambda X: heuristic.predict(X, scaler.mean_, scaler.scale_),
-    }
-
-    results = evaluate_all(split, lambda X: predict(model, X), baselines)
-
-    print("\n=== Global Metrics (test set, bps) ===")
-    for name, m in results.items():
-        if not isinstance(m, dict) or "mae_bps" not in m:
-            continue  # skip nested breakdowns (per_ticker, segment_breakdown)
-        print(
-            f"  {name:12s}  MAE={m['mae_bps']:.2f}  "
-            f"RMSE={m['rmse_bps']:.2f}  MedAE={m['med_ae_bps']:.2f}"
-        )
-
-    per_ticker = results.get("per_ticker", {})
-    if per_ticker:
-        print("\n=== Per-ticker MAE (MLP vs Heuristic, bps) ===")
-        for t in sorted(per_ticker.keys(), key=lambda k: per_ticker[k].get("mlp_mae_bps", 0)):
-            r = per_ticker[t]
-            mlp_v = r.get("mlp_mae_bps", float("nan"))
-            heur_v = r.get("heuristic_mae_bps", float("nan"))
-            print(f"  {t:6s}  n={int(r['n_samples']):>6,}  MLP={mlp_v:6.3f}  Heur={heur_v:6.3f}")
-
-
-if __name__ == "__main__":
-    _main()
