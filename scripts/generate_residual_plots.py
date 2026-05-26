@@ -1,8 +1,8 @@
 """Generate residual diagnostic plots for the canonical MLP checkpoint.
 
-Loads results/model_checkpoint.pt, rebuilds the canonical test split via
-build_full_dataset, predicts on the test set, and writes three diagnostic
-figures to results/figures/:
+Loads artifacts/checkpoints/model_checkpoint.pt, rebuilds the canonical
+test split via build_full_dataset, predicts on the test set, and writes
+three diagnostic figures to results/figures/:
 
   - residuals_vs_predicted.png
   - residual_distribution.png
@@ -14,16 +14,16 @@ from __future__ import annotations
 import torch
 
 from slippage.models import SlippageMLP
-from slippage.paths import RESULTS_DIR
+from slippage.paths import CHECKPOINTS_DIR
 from slippage.pipeline import build_full_dataset
 from slippage.viz import plot_qq_residuals, plot_residual_distribution, plot_residuals_vs_predicted
 
-CHECKPOINT = RESULTS_DIR / "model_checkpoint.pt"
+CHECKPOINT = CHECKPOINTS_DIR / "model_checkpoint.pt"
 
 
 def main() -> None:
     if not CHECKPOINT.exists():
-        print(f"Checkpoint not found at {CHECKPOINT}. Run python -m train first.")
+        print(f"Checkpoint not found at {CHECKPOINT}. Run `make train` first.")
         return
 
     print("Building dataset (using cached parquet)...")

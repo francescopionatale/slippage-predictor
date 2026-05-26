@@ -11,7 +11,7 @@ install: venv
 	$(PIP) install -e ".[dev]"
 
 data:
-	$(PYTHON) data/download.py
+	$(PYTHON) scripts/download_data.py
 
 train:
 	$(PYTHON) -m slippage.training.trainer

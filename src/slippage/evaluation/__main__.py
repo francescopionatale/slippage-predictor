@@ -7,7 +7,7 @@ import torch
 from slippage.evaluation.segments import evaluate_all
 from slippage.features import FEATURE_NAMES_TRAINING
 from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor, SlippageMLP
-from slippage.paths import RESULTS_DIR
+from slippage.paths import CHECKPOINTS_DIR
 from slippage.pipeline import build_full_dataset
 from slippage.training import predict
 
@@ -16,7 +16,7 @@ def main() -> None:
     print("Loading data and building split...")
     _, _, split = build_full_dataset()
 
-    checkpoint = torch.load(RESULTS_DIR / "model_checkpoint.pt", weights_only=True)
+    checkpoint = torch.load(CHECKPOINTS_DIR / "model_checkpoint.pt", weights_only=True)
     model = SlippageMLP(n_features=checkpoint["n_features"])
     model.load_state_dict(checkpoint["state_dict"])
 

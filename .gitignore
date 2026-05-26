@@ -10,6 +10,14 @@ build/
 .ipynb_checkpoints/
 results/*
 !results/README.md
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/checkpoints/
+!artifacts/scalers/
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+artifacts/scalers/*
+!artifacts/scalers/.gitkeep
 *.pt
 *.pth
 *.pkl

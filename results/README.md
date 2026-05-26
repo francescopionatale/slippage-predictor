@@ -15,8 +15,10 @@ make all
 That sequence produces:
 
 - `metrics.json` — canonical test-set metrics + per-ticker breakdown
-- `model_checkpoint.pt` — canonical MLP weights
 - `figures/` — single-model diagnostic PNGs
 - `runs/` — per-config sweep checkpoints and metrics
 - `comparisons/` — aggregated sweep tables + `report.html`
 - `walk_forward/` — expanding-window CV folds and summary
+
+Trained model weights live under `../artifacts/checkpoints/` (also
+gitignored). Fitted scalers go under `../artifacts/scalers/`.

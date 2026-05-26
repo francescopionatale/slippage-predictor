@@ -2,17 +2,16 @@
 """CLI script to download and cache OHLCV data.
 
 Usage:
-    python data/download.py
-    python data/download.py --interval 5m --start 2024-11-01 --end 2025-01-01
+    python scripts/download_data.py
+    python scripts/download_data.py --interval 5m --start 2024-11-01 --end 2025-01-01
 """
 
+from __future__ import annotations
+
 import argparse
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from data_loader import TICKERS, download_ohlcv, _default_start, _default_end
+from slippage.data import TICKERS, download_ohlcv
+from slippage.data.loader import _default_end, _default_start
 
 
 def main() -> None:

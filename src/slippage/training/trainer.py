@@ -16,9 +16,9 @@ from torch.utils.data import DataLoader
 
 from slippage.data import SlippageDataset, SplitData
 from slippage.models import SlippageMLP
-from slippage.paths import RESULTS_DIR
+from slippage.paths import CHECKPOINTS_DIR, RESULTS_DIR
 
-_DEFAULT_CHECKPOINT: Any = object()  # sentinel: "use RESULTS_DIR/model_checkpoint.pt"
+_DEFAULT_CHECKPOINT: Any = object()  # sentinel: "use CHECKPOINTS_DIR/model_checkpoint.pt"
 
 
 def train(
@@ -46,7 +46,7 @@ def train(
         Dropout probability for the MLP's hidden layer.
     checkpoint_path:
         Where to persist the best model. Defaults to
-        ``results/model_checkpoint.pt``; pass an explicit path to write
+        ``artifacts/checkpoints/model_checkpoint.pt``; pass an explicit path to write
         elsewhere, or ``None`` to skip saving entirely (useful for
         walk-forward CV where dozens of folds would otherwise overwrite
         each other).
@@ -131,7 +131,7 @@ def train(
     history["best_val_mae"] = best_val_mae
 
     if checkpoint_path is _DEFAULT_CHECKPOINT:
-        checkpoint_path = RESULTS_DIR / "model_checkpoint.pt"
+        checkpoint_path = CHECKPOINTS_DIR / "model_checkpoint.pt"
     if checkpoint_path is not None:
         torch.save(
             {"state_dict": model.state_dict(), "n_features": n_features},
