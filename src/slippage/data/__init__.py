@@ -6,7 +6,12 @@ from slippage.data.loader import (
     TICKERS,
     download_ohlcv,
 )
-from slippage.data.splits import SlippageDataset, SplitData, temporal_split
+from slippage.data.splits import SplitData, temporal_split
+
+# Backwards-compatible re-export: SlippageDataset moved to slippage.models.dataset
+# in the package refactor (Block 2.5). Re-export here so legacy
+# `from slippage.data import SlippageDataset` continues to work.
+from slippage.models.dataset import SlippageDataset
 
 __all__ = [
     "TICKERS",
