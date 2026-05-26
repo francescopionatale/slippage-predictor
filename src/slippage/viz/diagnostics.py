@@ -35,13 +35,15 @@ def plot_pred_vs_actual(
     else:
         ax.scatter(y_true, y_pred, s=8, alpha=0.3, color="steelblue")
 
-    lim = max(abs(y_true).max(), abs(y_pred).max()) * 1.05
-    ax.plot([-lim, lim], [-lim, lim], "r--", lw=1, label="perfect prediction")
+    # Slippage is non-negative (Softplus head + positive proxy formula),
+    # so anchor both axes at 0 — the origin sits at the bottom-left corner.
+    lim = max(float(y_true.max()), float(y_pred.max())) * 1.05
+    ax.plot([0, lim], [0, lim], "r--", lw=1, label="perfect prediction")
     ax.set_xlabel("Actual slippage (bps)")
     ax.set_ylabel("Predicted slippage (bps)")
     ax.set_title(title)
-    ax.set_xlim(-lim, lim)
-    ax.set_ylim(-lim, lim)
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, lim)
 
     mae = float(np.abs(y_true - y_pred).mean())
     ss_res = float(((y_true - y_pred) ** 2).sum())
