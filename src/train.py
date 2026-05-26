@@ -7,6 +7,7 @@ Can also be run as a module:
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import numpy as np
 import torch
@@ -16,6 +17,8 @@ from torch.utils.data import DataLoader
 from dataset import SlippageDataset, SplitData
 from model import SlippageMLP
 from paths import RESULTS_DIR
+
+_DEFAULT_CHECKPOINT: Any = object()  # sentinel: "use RESULTS_DIR/model_checkpoint.pt"
 
 
 def train(
@@ -27,8 +30,26 @@ def train(
     patience: int = 10,
     seed: int = 42,
     verbose: bool = True,
+    delta: float | None = None,
+    dropout: float = 0.1,
+    checkpoint_path: Any = _DEFAULT_CHECKPOINT,
 ) -> tuple[SlippageMLP, dict]:
     """Train MLP with Huber loss, Adam, ReduceLROnPlateau, and early stopping.
+
+    Parameters
+    ----------
+    delta:
+        Huber loss delta in bps. If ``None`` (default), computed adaptively
+        as ``max(1.0, median(|y_train|))`` so most residuals fall in the
+        quadratic region and the gradient scales with error magnitude.
+    dropout:
+        Dropout probability for the MLP's hidden layer.
+    checkpoint_path:
+        Where to persist the best model. Defaults to
+        ``results/model_checkpoint.pt``; pass an explicit path to write
+        elsewhere, or ``None`` to skip saving entirely (useful for
+        walk-forward CV where dozens of folds would otherwise overwrite
+        each other).
 
     Returns
     -------
@@ -47,14 +68,19 @@ def train(
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=batch_size)
 
-    model = SlippageMLP(n_features=n_features)
+    model = SlippageMLP(n_features=n_features, dropout=dropout)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, patience=5, factor=0.5, min_lr=1e-5
     )
-    criterion = nn.HuberLoss(delta=1.0)
 
-    history = {"train_loss": [], "val_mae": []}
+    if delta is None:
+        delta = max(1.0, float(np.median(np.abs(split.y_train))))
+    criterion = nn.HuberLoss(delta=delta)
+    if verbose:
+        print(f"Adaptive Huber delta = {delta:.2f} bps (median|y_train|)")
+
+    history: dict[str, Any] = {"train_loss": [], "val_mae": []}
     best_val_mae = float("inf")
     best_state = None
     best_epoch = 0
@@ -104,10 +130,15 @@ def train(
     history["best_epoch"] = best_epoch
     history["best_val_mae"] = best_val_mae
 
-    checkpoint_path = RESULTS_DIR / "model_checkpoint.pt"
-    torch.save({"state_dict": model.state_dict(), "n_features": n_features}, checkpoint_path)
-    if verbose:
-        print(f"Model saved to {checkpoint_path}")
+    if checkpoint_path is _DEFAULT_CHECKPOINT:
+        checkpoint_path = RESULTS_DIR / "model_checkpoint.pt"
+    if checkpoint_path is not None:
+        torch.save(
+            {"state_dict": model.state_dict(), "n_features": n_features},
+            checkpoint_path,
+        )
+        if verbose:
+            print(f"Model saved to {checkpoint_path}")
 
     return model, history
 
@@ -125,14 +156,14 @@ def predict(model: SlippageMLP, X: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def _main() -> None:
-    from features import FEATURE_NAMES
+    from features import FEATURE_NAMES_TRAINING
     from pipeline import build_full_dataset
 
     print("Downloading data and building split...")
     _, _, split = build_full_dataset()
     print(f"Train: {len(split.X_train):,}  Val: {len(split.X_val):,}  Test: {len(split.X_test):,}")
 
-    model, history = train(split, n_features=len(FEATURE_NAMES))
+    model, history = train(split, n_features=len(FEATURE_NAMES_TRAINING))
 
     metrics = {"best_epoch": history["best_epoch"], "best_val_mae": history["best_val_mae"]}
     with open(RESULTS_DIR / "metrics.json", "w") as f:

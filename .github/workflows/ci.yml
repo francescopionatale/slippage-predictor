@@ -25,3 +25,9 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v
+
+      - name: Lint
+        run: ruff check src/ tests/ scripts/
+
+      - name: Type-check
+        run: mypy src/ --ignore-missing-imports

@@ -6,10 +6,10 @@ import pytest
 
 from features import (
     FEATURE_NAMES,
-    add_synthetic_orders,
-    compute_market_features,
     _corwin_schultz_spread,
     _time_of_day_encoding,
+    add_synthetic_orders,
+    compute_market_features,
 )
 
 

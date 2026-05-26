@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-
 # ---------------------------------------------------------------------------
 # Market features
 # ---------------------------------------------------------------------------
@@ -53,8 +52,27 @@ def compute_market_features(df: pd.DataFrame, vol_window: int = 20) -> pd.DataFr
 
     out["spread_cs"] = _corwin_schultz_spread(df["high"], df["low"])
 
+    # Regular trading hours flag (NYSE 09:30–16:00 Eastern)
+    hours = eastern_hours(df.index)
+    out["is_rth"] = ((hours >= 9.5) & (hours < 16.0)).astype(float)
+
     out = out.dropna()
     return out
+
+
+def eastern_hours(index: pd.DatetimeIndex) -> np.ndarray:
+    """Return the hour-of-day (0–24, fractional) in America/New_York.
+
+    Naive indices are assumed to already be in Eastern wall-clock time;
+    tz-aware indices are converted. Shared by ``_time_of_day_encoding``
+    here and by ``proxy.build_proxy`` for its ``tod_mult`` factor.
+    """
+    if index.tz is None:
+        hours = index.hour + index.minute / 60.0
+    else:
+        eastern = index.tz_convert("America/New_York")
+        hours = eastern.hour + eastern.minute / 60.0
+    return np.asarray(hours, dtype=float)
 
 
 def _time_of_day_encoding(index: pd.DatetimeIndex) -> tuple[pd.Series, pd.Series]:
@@ -64,12 +82,7 @@ def _time_of_day_encoding(index: pd.DatetimeIndex) -> tuple[pd.Series, pd.Series
     period) means extended-hours bars get unique encodings — important
     because yfinance 1h data includes pre- and post-market bars.
     """
-    if index.tzinfo is None:
-        hours = index.hour + index.minute / 60.0
-    else:
-        eastern = index.tz_convert("America/New_York")
-        hours = eastern.hour + eastern.minute / 60.0
-
+    hours = eastern_hours(index)
     frac = hours / 24.0
     tod_sin = pd.Series(np.sin(2 * np.pi * frac), index=index)
     tod_cos = pd.Series(np.cos(2 * np.pi * frac), index=index)
@@ -111,25 +124,31 @@ def _corwin_schultz_spread(
 FEATURE_NAMES_MARKET = [
     "ret_1", "ret_3", "ret_6", "ret_12",
     "vol_rolling", "range_rel", "vol_ratio",
-    "tod_sin", "tod_cos", "spread_cs",
+    "tod_sin", "tod_cos", "spread_cs", "is_rth",
 ]
 
 FEATURE_NAMES_ORDER = ["side", "order_size_fraction", "urgency"]
 FEATURE_NAMES = FEATURE_NAMES_MARKET + FEATURE_NAMES_ORDER
 
+# Features actually fed to the model — `side` is excluded because it
+# cancels algebraically in the proxy formula (see proxy.build_proxy) and
+# the model should not be allowed to learn anything from it.
+FEATURE_NAMES_TRAINING = [f for f in FEATURE_NAMES if f != "side"]
+
 
 def add_synthetic_orders(
     market_feats: pd.DataFrame,
     rng: np.random.Generator | None = None,
-    orders_per_bar: int = 2,
+    orders_per_bar: int = 4,
     size_low: float = 0.001,
     size_high: float = 0.05,
 ) -> pd.DataFrame:
     """Expand market features by generating synthetic order features.
 
     For each input bar, ``orders_per_bar`` synthetic orders are created with
-    alternating buy/sell sides and uniformly sampled size and urgency. This
-    ensures balanced buy/sell representation and broadens order-feature coverage.
+    alternating buy/sell sides and uniformly sampled size and urgency. The
+    default 4 = 2 buy + 2 sell per bar gives wider per-bar coverage of the
+    (size, urgency) plane and ~2× the training rows of the previous default.
 
     Parameters
     ----------

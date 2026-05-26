@@ -21,7 +21,7 @@ import torch
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset
 
-from features import FEATURE_NAMES
+from features import FEATURE_NAMES_TRAINING
 
 
 @dataclass
@@ -55,7 +55,9 @@ def temporal_split(
     train_frac, val_frac:
         Fraction of rows for train and validation. Remaining go to test.
     feature_cols:
-        Columns to use as model input. Defaults to ``FEATURE_NAMES``.
+        Columns to use as model input. Defaults to ``FEATURE_NAMES_TRAINING``
+        (everything except ``side``, which cancels algebraically in the
+        proxy and should not enter the model).
     target_col:
         Name of the label column.
 
@@ -65,7 +67,7 @@ def temporal_split(
     train/val/test DataFrame slices.
     """
     if feature_cols is None:
-        feature_cols = FEATURE_NAMES
+        feature_cols = FEATURE_NAMES_TRAINING
 
     df = proxy_df.sort_index().dropna(subset=feature_cols + [target_col])
     n = len(df)

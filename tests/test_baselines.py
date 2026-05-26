@@ -1,7 +1,6 @@
 """Unit tests for baseline predictors."""
 
 import numpy as np
-import pytest
 
 from baselines import HeuristicBaseline, LinearBaseline, MeanPredictor
 from features import FEATURE_NAMES
@@ -50,11 +49,7 @@ def test_linear_baseline_beats_mean_on_correlated_data():
 
 
 def test_heuristic_baseline_beta_calibrated():
-    rng = np.random.default_rng(3)
-    X_train, y_train, X_val, y_val = _toy_data()
-    # Make heuristic product columns match target
-    size_idx = FEATURE_NAMES.index("order_size_fraction")
-    vol_idx = FEATURE_NAMES.index("vol_rolling")
+    _, _, X_val, y_val = _toy_data()
     scaler_mean = np.zeros(len(FEATURE_NAMES))
     scaler_std = np.ones(len(FEATURE_NAMES))
 

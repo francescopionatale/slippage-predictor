@@ -1,10 +1,9 @@
 """Unit tests for temporal splitting and dataset utilities."""
 
 import numpy as np
-import pytest
 
 from dataset import SlippageDataset, temporal_split
-from features import FEATURE_NAMES
+from features import FEATURE_NAMES_TRAINING
 
 
 def test_no_temporal_overlap(proxy_df):
@@ -35,7 +34,7 @@ def test_scaler_fitted_on_train_only(proxy_df):
     split = temporal_split(df)
     assert abs(split.X_train.mean()) < 0.1
     assert abs(split.X_train.std() - 1.0) < 0.1
-    train_means = df.iloc[:int(0.65 * 300)][FEATURE_NAMES].values.mean(axis=0)
+    train_means = df.iloc[:int(0.65 * 300)][FEATURE_NAMES_TRAINING].values.mean(axis=0)
     np.testing.assert_allclose(split.scaler.mean_, train_means, rtol=1e-5)
 
 
@@ -50,5 +49,5 @@ def test_dataset_shapes(proxy_df):
     split = temporal_split(proxy_df(n=100))
     ds = SlippageDataset(split.X_train, split.y_train)
     X, y = ds[0]
-    assert X.shape == (len(FEATURE_NAMES),)
+    assert X.shape == (len(FEATURE_NAMES_TRAINING),)
     assert y.shape == (1,)
