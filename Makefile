@@ -1,7 +1,7 @@
 PYTHON := .venv/bin/python
 PIP    := .venv/bin/pip
 
-.PHONY: venv install data train eval test report all clean
+.PHONY: venv install demo data train eval test report all clean
 
 venv:
 	python3.13 -m venv .venv || python3.12 -m venv .venv
@@ -9,6 +9,10 @@ venv:
 
 install: venv
 	$(PIP) install -e ".[dev]"
+
+# Offline end-to-end demo on the committed sample — runs in <1 min, no network.
+demo:
+	$(PYTHON) scripts/demo.py
 
 data:
 	$(PYTHON) scripts/download_data.py

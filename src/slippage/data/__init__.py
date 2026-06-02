@@ -4,6 +4,7 @@ from slippage.data.loader import (
     MIN_BARS,
     TICKER_FALLBACKS,
     TICKERS,
+    DataDownloadError,
     download_ohlcv,
 )
 from slippage.data.splits import SplitData, temporal_split
@@ -17,6 +18,7 @@ __all__ = [
     "TICKERS",
     "TICKER_FALLBACKS",
     "MIN_BARS",
+    "DataDownloadError",
     "download_ohlcv",
     "SplitData",
     "SlippageDataset",

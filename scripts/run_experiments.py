@@ -16,9 +16,9 @@ from __future__ import annotations
 import json
 import time
 
-from slippage.evaluation import evaluate_all
+from slippage.config import Config
+from slippage.evaluation import build_baselines, evaluate_all
 from slippage.features import FEATURE_NAMES_TRAINING
-from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor
 from slippage.paths import RESULTS_DIR
 from slippage.pipeline import build_full_dataset
 from slippage.training import predict, train
@@ -110,9 +110,10 @@ def run_one(cfg: dict, split, baselines: dict) -> dict:
 
 
 def main() -> None:
+    config = Config.load()
     print("Building dataset (downloads cached parquet on first run)...")
     t0 = time.time()
-    _, _, split = build_full_dataset()
+    _, _, split = build_full_dataset(config=config)
     print(
         f"  Train: {len(split.X_train):,}  "
         f"Val: {len(split.X_val):,}  "
@@ -121,14 +122,7 @@ def main() -> None:
     )
 
     # Baselines are fit once on the canonical split (they are deterministic).
-    scaler = split.scaler
-    heuristic = HeuristicBaseline(FEATURE_NAMES_TRAINING)
-    heuristic.fit(split.X_val, split.y_val, scaler.mean_, scaler.scale_)
-    baselines = {
-        "mean": lambda X: MeanPredictor().fit(split.X_train, split.y_train).predict(X),
-        "linear": LinearBaseline().fit(split.X_train, split.y_train).predict,
-        "heuristic": lambda X: heuristic.predict(X, scaler.mean_, scaler.scale_),
-    }
+    baselines = build_baselines(split)
 
     configs = build_run_configs()
     print(f"\nRunning {len(configs)} configurations:")

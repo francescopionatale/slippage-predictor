@@ -32,14 +32,17 @@ def long_proxy_df():
     return pd.DataFrame(data, index=index)
 
 
+EXPECTED_MODELS = {"mlp", "mean", "linear", "heuristic", "gbm"}
+
+
 def test_walk_forward_cv_shape(long_proxy_df):
     results = walk_forward_cv(
         long_proxy_df, n_folds=2, test_months=1.0,
         epochs=2, seed=0, dropout=0.0,
     )
-    # 2 folds × 4 models = 8 rows
-    assert len(results) == 8
-    assert set(results["model"].unique()) == {"mlp", "mean", "linear", "heuristic"}
+    # 2 folds × len(EXPECTED_MODELS) rows
+    assert len(results) == 2 * len(EXPECTED_MODELS)
+    assert set(results["model"].unique()) == EXPECTED_MODELS
     assert set(results["fold"].unique()) == {0, 1}
 
 
@@ -72,7 +75,7 @@ def test_walk_forward_summarise(long_proxy_df):
         epochs=2, seed=0, dropout=0.0,
     )
     summary = summarise(results)
-    assert len(summary) == 4
+    assert len(summary) == len(EXPECTED_MODELS)
     for col in ("mae_bps_mean", "mae_bps_std", "rmse_bps_mean", "med_ae_bps_mean"):
         assert col in summary.columns
         assert np.isfinite(summary[col]).all()

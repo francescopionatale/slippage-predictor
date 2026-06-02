@@ -1,14 +1,16 @@
 """Baseline predictors for slippage comparison.
 
-Three baselines are compared against the MLP:
+Baselines compared against the MLP:
   1. MeanPredictor  — always predicts the training-set mean.
   2. LinearBaseline — Ridge regression on the same scaled features.
-  3. HeuristicBaseline — β * order_size_fraction * vol_rolling, β calibrated on val.
+  3. HeuristicBaseline — β * √order_size_fraction * vol_rolling, β calibrated on val.
+  4. GBMBaseline — gradient-boosted trees, a strong tabular learner.
 """
 
 from __future__ import annotations
 
 import numpy as np
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 
 
@@ -38,6 +40,40 @@ class LinearBaseline:
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return self._model.predict(X)
+
+
+class GBMBaseline:
+    """Gradient-boosted regression trees on the scaled feature matrix.
+
+    A strong, low-variance tabular learner. On features with the kind of
+    multiplicative interactions the proxy encodes, a GBM is the fair
+    nonlinear baseline to hold the MLP against — unlike the deliberately
+    handicapped HeuristicBaseline. Backed by scikit-learn's
+    ``HistGradientBoostingRegressor`` so no extra dependency is required;
+    swap in LightGBM/XGBoost by subclassing if desired.
+    """
+
+    def __init__(
+        self,
+        max_iter: int = 300,
+        learning_rate: float = 0.05,
+        max_depth: int | None = None,
+        random_state: int = 42,
+    ) -> None:
+        self._model = HistGradientBoostingRegressor(
+            max_iter=max_iter,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            random_state=random_state,
+        )
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "GBMBaseline":
+        self._model.fit(X, y)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        # Slippage is a non-negative cost; clip tiny negative extrapolations.
+        return np.maximum(self._model.predict(X), 0.0)
 
 
 class HeuristicBaseline:

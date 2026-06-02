@@ -1,7 +1,17 @@
+# Runtime dependencies — mirror of [project.dependencies] in pyproject.toml.
+#
+# The canonical install is the editable package with dev extras:
+#     pip install -e ".[dev]"
+# This file exists for environments that prefer a plain requirements install.
+# For byte-reproducible builds, generate a pinned lockfile:
+#     uv pip compile pyproject.toml -o requirements.lock
+# and install from that instead.
+
 numpy>=1.26
 pandas>=2.0
 scipy>=1.10
 scikit-learn>=1.4
+joblib>=1.3
 torch>=2.2
 yfinance>=0.2.40
 pyarrow>=15
@@ -9,4 +19,5 @@ matplotlib>=3.7
 seaborn>=0.13
 jupyter>=1.0
 ipykernel>=6.0
-pytest>=8
+pydantic>=2
+PyYAML>=6

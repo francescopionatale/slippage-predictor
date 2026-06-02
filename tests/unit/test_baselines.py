@@ -3,7 +3,7 @@
 import numpy as np
 
 from slippage.features import FEATURE_NAMES
-from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor
+from slippage.models import GBMBaseline, HeuristicBaseline, LinearBaseline, MeanPredictor
 
 
 def _toy_data(n_train: int = 200, n_val: int = 50, seed: int = 0):
@@ -66,3 +66,27 @@ def test_heuristic_baseline_output_shape():
     h.fit(X_val, y_val, scaler_mean, scaler_std)
     pred = h.predict(X_val, scaler_mean, scaler_std)
     assert pred.shape == (len(X_val),)
+
+
+def test_gbm_baseline_output_shape_and_non_negative():
+    X_train, y_train, X_val, _ = _toy_data()
+    gbm = GBMBaseline(max_iter=20).fit(X_train, y_train)
+    pred = gbm.predict(X_val)
+    assert pred.shape == (len(X_val),)
+    assert (pred >= 0).all(), "slippage predictions must be non-negative"
+
+
+def test_gbm_baseline_beats_mean_on_nonlinear_signal():
+    """GBM should capture a nonlinear interaction the mean cannot."""
+    rng = np.random.default_rng(11)
+    n = 600
+    X = rng.uniform(0, 1, (n, 3))
+    y = np.abs(np.sqrt(X[:, 0]) * X[:, 1] * 10.0 + rng.standard_normal(n) * 0.1)
+    X_train, y_train = X[:450], y[:450]
+    X_val, y_val = X[450:], y[450:]
+
+    mean_pred = MeanPredictor().fit(X_train, y_train).predict(X_val)
+    gbm_pred = GBMBaseline(max_iter=100).fit(X_train, y_train).predict(X_val)
+    mean_mae = float(np.abs(mean_pred - y_val).mean())
+    gbm_mae = float(np.abs(gbm_pred - y_val).mean())
+    assert gbm_mae < mean_mae
