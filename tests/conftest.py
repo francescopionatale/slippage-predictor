@@ -49,3 +49,14 @@ def proxy_df():
         data["slippage_bps"] = rng.standard_normal(n) * 10
         return pd.DataFrame(data, index=index)
     return _make
+
+
+@pytest.fixture
+def small_split(proxy_df):
+    """A small, non-negative-target SplitData for fast trainer tests."""
+    from slippage.data import temporal_split
+
+    df = proxy_df(n=600, seed=0)
+    # Make the target a strictly-positive cost so it matches real slippage.
+    df["slippage_bps"] = df["slippage_bps"].abs() + 1.0
+    return temporal_split(df)

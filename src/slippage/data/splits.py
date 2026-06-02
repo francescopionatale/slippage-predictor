@@ -67,10 +67,22 @@ def temporal_split(
     if feature_cols is None:
         feature_cols = FEATURE_NAMES_TRAINING
 
+    if not 0 < train_frac < 1 or not 0 <= val_frac < 1 or train_frac + val_frac >= 1:
+        raise ValueError(
+            f"invalid split fractions: train_frac={train_frac}, val_frac={val_frac} "
+            "(need 0<train_frac<1, 0<=val_frac<1, train_frac+val_frac<1)"
+        )
+
     df = proxy_df.sort_index().dropna(subset=feature_cols + [target_col])
     n = len(df)
     i_val = int(n * train_frac)
     i_test = int(n * (train_frac + val_frac))
+
+    if i_val == 0 or i_val == i_test or i_test == n:
+        raise ValueError(
+            f"temporal_split: {n} usable rows are too few to form non-empty "
+            "train/val/test folds at the requested fractions."
+        )
 
     train_df = df.iloc[:i_val]
     val_df = df.iloc[i_val:i_test]

@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "slippage-predictor"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "Natale"
+    given-names: "Francesco"
+repository-code: "https://github.com/francescopionatale/slippage-predictor"
+abstract: >-
+  A research-grade framework for estimating order execution cost
+  (slippage) from public intraday OHLCV data. It pairs a methodologically
+  careful synthetic square-root-impact proxy with an empirical,
+  non-circular real-data target (forward Amihud illiquidity / Kyle's
+  lambda), gradient-boosting baselines, a distributional quantile head,
+  and Diebold-Mariano significance testing.
+keywords:
+  - market-microstructure
+  - transaction-cost-analysis
+  - slippage
+  - quantitative-finance
+  - pytorch
+  - walk-forward
+license: MIT
+version: "0.2.0"

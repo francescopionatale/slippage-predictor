@@ -1,6 +1,7 @@
 """MLP architecture, baseline predictors, and PyTorch Dataset wrapper."""
 
 from slippage.models.baselines import (
+    GBMBaseline,
     HeuristicBaseline,
     LinearBaseline,
     MeanPredictor,
@@ -14,4 +15,5 @@ __all__ = [
     "MeanPredictor",
     "LinearBaseline",
     "HeuristicBaseline",
+    "GBMBaseline",
 ]

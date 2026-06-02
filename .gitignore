@@ -1,5 +1,8 @@
 data/raw/
 data/processed/
+# Keep the committed offline demo sample (data/sample/) and the curated
+# figures embedded in docs (docs/assets/) — not the bulk results/ outputs.
+!data/sample/
 .venv/
 __pycache__/
 *.py[cod]
@@ -24,4 +27,7 @@ artifacts/scalers/*
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 .DS_Store

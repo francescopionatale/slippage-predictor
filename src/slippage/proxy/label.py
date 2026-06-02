@@ -25,6 +25,11 @@ def build_proxy(
     alpha: float = 2.0,
     impact_noise: float = 0.20,
     rng: np.random.Generator | None = None,
+    urgency_exp: float = 1.5,
+    spread_mult: float = 50.0,
+    tod_mult: float = 1.3,
+    tod_open_thresh: float = 10.5,
+    tod_close_thresh: float = 15.0,
 ) -> pd.DataFrame:
     """Build the synthetic slippage label for every row in ``features``.
 
@@ -86,12 +91,12 @@ def build_proxy(
     feats = features.loc[shared].copy()
     arrival = df["close"].loc[shared]
 
-    urgency_factor = 1.0 + feats["urgency"] ** 1.5
-    spread_penalty = 1.0 + 50.0 * feats["spread_cs"] * feats["order_size_fraction"]
+    urgency_factor = 1.0 + feats["urgency"] ** urgency_exp
+    spread_penalty = 1.0 + spread_mult * feats["spread_cs"] * feats["order_size_fraction"]
 
     hours = eastern_hours(feats.index)
-    tod_mult = pd.Series(
-        np.where((hours < 10.5) | (hours >= 15.0), 1.3, 1.0),
+    tod_factor = pd.Series(
+        np.where((hours < tod_open_thresh) | (hours >= tod_close_thresh), tod_mult, 1.0),
         index=feats.index,
     )
 
@@ -102,7 +107,7 @@ def build_proxy(
         * arrival
         * urgency_factor
         * spread_penalty
-        * tod_mult
+        * tod_factor
     )
 
     if impact_noise > 0:

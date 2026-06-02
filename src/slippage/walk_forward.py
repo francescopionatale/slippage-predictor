@@ -15,9 +15,8 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 from slippage.data import SplitData
-from slippage.evaluation import global_metrics
+from slippage.evaluation import build_baselines, global_metrics
 from slippage.features import FEATURE_NAMES_TRAINING
-from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor
 from slippage.training import predict, train
 
 _DAYS_PER_MONTH = 30.44
@@ -140,18 +139,9 @@ def walk_forward_cv(
         )
         y_pred_mlp = predict(model, split.X_test)
 
-        scaler = split.scaler
-        heuristic = HeuristicBaseline(feature_cols)
-        heuristic.fit(split.X_val, split.y_val, scaler.mean_, scaler.scale_)
-        mean_pred = MeanPredictor().fit(split.X_train, split.y_train)
-        linear_pred = LinearBaseline().fit(split.X_train, split.y_train)
-
-        predictions = {
-            "mlp": y_pred_mlp,
-            "mean": mean_pred.predict(split.X_test),
-            "linear": linear_pred.predict(split.X_test),
-            "heuristic": heuristic.predict(split.X_test, scaler.mean_, scaler.scale_),
-        }
+        baselines = build_baselines(split, feature_cols)
+        predictions = {"mlp": y_pred_mlp}
+        predictions.update({name: fn(split.X_test) for name, fn in baselines.items()})
 
         for name, y_pred in predictions.items():
             metrics = global_metrics(split.y_test, y_pred)

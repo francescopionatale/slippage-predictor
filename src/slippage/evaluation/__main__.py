@@ -2,33 +2,20 @@
 
 from __future__ import annotations
 
-import torch
-
+from slippage.config import Config
+from slippage.evaluation import build_baselines
 from slippage.evaluation.segments import evaluate_all
-from slippage.features import FEATURE_NAMES_TRAINING
-from slippage.models import HeuristicBaseline, LinearBaseline, MeanPredictor, SlippageMLP
-from slippage.paths import CHECKPOINTS_DIR
 from slippage.pipeline import build_full_dataset
-from slippage.training import predict
+from slippage.training import load_model, predict
 
 
 def main() -> None:
+    config = Config.load()
     print("Loading data and building split...")
-    _, _, split = build_full_dataset()
+    _, _, split = build_full_dataset(config=config)
 
-    checkpoint = torch.load(CHECKPOINTS_DIR / "model_checkpoint.pt", weights_only=True)
-    model = SlippageMLP(n_features=checkpoint["n_features"])
-    model.load_state_dict(checkpoint["state_dict"])
-
-    scaler = split.scaler
-    heuristic = HeuristicBaseline(FEATURE_NAMES_TRAINING)
-    heuristic.fit(split.X_val, split.y_val, scaler.mean_, scaler.scale_)
-
-    baselines = {
-        "mean": lambda X: MeanPredictor().fit(split.X_train, split.y_train).predict(X),
-        "linear": LinearBaseline().fit(split.X_train, split.y_train).predict,
-        "heuristic": lambda X: heuristic.predict(X, scaler.mean_, scaler.scale_),
-    }
+    model = load_model()
+    baselines = build_baselines(split)
 
     results = evaluate_all(split, lambda X: predict(model, X), baselines)
 
